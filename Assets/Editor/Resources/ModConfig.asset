@@ -16,7 +16,10 @@ MonoBehaviour:
   author: xMcacutt
   description: 'The Fan v1.0.0
 
-    You spin me right ''round, baby, right ''round'
+    You spin me right ''round, baby, right ''round
+
+
+    Source Code: https://github.com/xMcacutt/KTaNE-TheFan-Module'
   version: 1.0.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 6489a39db3c446244b1a19ef0e8c5cb6, type: 3}
