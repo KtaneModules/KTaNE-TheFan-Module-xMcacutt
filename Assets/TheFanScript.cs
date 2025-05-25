@@ -23,7 +23,7 @@ public class TheFanScript : MonoBehaviour
 	private List<string> _currentSolves = new List<string>();
 
 	private const string Vowels = "AEIOU";
-	private const string PossibleCharacters = "0123456789AbcdefGHijKlMnOPqrsTUVwXYZ";
+	private const string PossibleCharacters = "0123456789AbcdefGHIjKlMnoPqRsTUVwXyz";
 	private static readonly Random Random = new Random();
 
 	private static readonly string[] localIgnored = { "The Fan", "Souvenir", "The Heart", "The Swan", "+", "14", "42", "501", "A>N<D", "Bamboozling Time Keeper", "Black Arrows", "Brainf---", "Busy Beaver", "Cube Synchronization", "Don't Touch Anything", "Floor Lights", "Forget Any Color", "Forget Enigma", "Forget Everything", "Forget Infinity", "Forget Maze Not", "Forget It Not", "Forget Me Not", "Forget Me Later", "Forget Perspective", "Forget The Colors", "Forget This", "Forget Them All", "Forget Us Not", "Iconic", "Keypad Directionality", "Kugelblitz", "Multitask", "OmegaDestroyer", "OmegaForget", "Organization", "Password Destroyer", "Purgatory", "RPS Judging", "Security Council", "Shoddy Chess", "Simon Forgets", "Simon's Stages", "Soulscream", "Souvenir", "Tallordered Keys", "The Time Keeper", "The Troll", "The Twin", "The Very Annoying Button", "Timing is Everything", "Turn The Key", "Ultimate Custom Night", "Whiteout", "Übermodule" };
@@ -50,9 +50,6 @@ public class TheFanScript : MonoBehaviour
 	{
 		moduleId = _moduleIdCounter++;
 		_direction = 1;
-
-		remoteIgnored = BossModule.GetIgnoredModules("The Fan");
-		allIgnored = remoteIgnored.Union(localIgnored).ToArray();
 
 		powerButton.OnInteract += () =>
 		{
@@ -91,6 +88,8 @@ public class TheFanScript : MonoBehaviour
 	
 	void Start ()
 	{
+		remoteIgnored = BossModule.GetIgnoredModules("The Fan");
+		allIgnored = remoteIgnored.Union(localIgnored).ToArray();
 		_fanSpeed = 0;
 		displayText.text = GetRandomDisplayText();
 		_currentSolves = Bomb.GetSolvedModuleNames();
@@ -122,6 +121,7 @@ public class TheFanScript : MonoBehaviour
 		_lastAngle = currentAngle;
 	}
 
+	private bool temp = false;
 	void Update()
 	{
 		_fanTargetSpeed = _isOn ? rotationSpeed * _direction : 0;
@@ -135,12 +135,17 @@ public class TheFanScript : MonoBehaviour
 			_powerButtonCount = 0;
 		
 		if (_isDeactivated) return;
-		if ((float)Bomb.GetSolvedModuleNames().Count / Bomb.GetModuleNames().Count * 100 >= _solvePercentageRequired
-		    || Bomb.GetSolvableModuleNames().All(x => allIgnored.Contains(x)))
+		if (allIgnored != null)
 		{
-			_isDeactivated = true;
-			displayText.text = "POwer";
-			return;
+			var numSolvable = Bomb.GetSolvableModuleNames().Count(x => !allIgnored.Contains(x));
+			var numSolved = Bomb.GetSolvedModuleNames().Count(x => !allIgnored.Contains(x));
+			if ((float)Bomb.GetSolvedModuleNames().Count / Bomb.GetModuleNames().Count * 100 >= _solvePercentageRequired
+			    || numSolved >= numSolvable)
+			{
+				_isDeactivated = true;
+				displayText.text = "POwer";
+				return;
+			}
 		}
 
 		var solvedModules = Bomb.GetSolvedModuleNames();
@@ -198,11 +203,11 @@ public class TheFanScript : MonoBehaviour
 		y = ((y - 1) % 26 + 26) % 26 + 1;
 		var yChar = (char)('@' + y);
 
-		if (Vowels.Contains(xChar) && Vowels.Contains(yChar))
+		if (Vowels.ToUpper().Contains(xChar) && Vowels.ToUpper().Contains(yChar))
 			return 0;
-		if (lastSolved.Contains(xChar) && lastSolved.Contains(yChar))
+		if (lastSolved.ToUpper().Contains(xChar) && lastSolved.ToUpper().Contains(yChar))
 			return 1;
-		if (serial.Contains(xChar) && serial.Contains(yChar))
+		if (serial.ToUpper().Contains(xChar) && serial.ToUpper().Contains(yChar))
 			return -1;
 	    
 		var z = (x + y) % 3 - 1;

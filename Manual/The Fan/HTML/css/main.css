@@ -51,39 +51,6 @@ html {
  * Customize the background color to match your design.
  */
 
-.symbol-font {
-    font-family: 'Fans';
-    font-size: 2.5em;
-}
-
-.tables-container {
-    display: flex;
-    flex-wrap: wrap;       /* wrap to next line if too wide */
-    gap: 12px 16px;        /* vertical (row) and horizontal (column) gaps */
-}
-
-.tables-container table {
-    border-collapse: collapse;
-    border: 1px solid #333;
-    width: 60px;           /* fixed width for uniformity */
-    text-align: center;
-}
-
-.tables-container td {
-    border: 1px solid #333;
-    padding: 6px 4px;
-}
-
-table {
-    border-collapse: collapse;
-}
-
-td {
-    border: 1px solid #333;
-    padding: 4px 8px;
-    text-align: center;
-}
-
 ::-moz-selection {
     background: #b3d4fc;
     text-shadow: none;
