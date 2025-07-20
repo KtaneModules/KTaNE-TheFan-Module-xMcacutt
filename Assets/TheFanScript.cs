@@ -48,8 +48,43 @@ public class TheFanScript : MonoBehaviour
 	private int _powerButtonCount = 0;
 	private const float PowerButtonResetDelay = 0.5f;
 	private float _powerButtonPressTime;
+	
+	void Awake()
+	{
+		moduleId = _moduleIdCounter++;
+		_direction = 1;
 
-	bool PressPower()
+		powerButton.OnInteract += PressPower;
+		directionButton.OnInteract += PressDirection;
+	}
+	
+	void Start ()
+	{
+		remoteIgnored = BossModule.GetIgnoredModules("The Fan");
+		allIgnored = remoteIgnored.Union(localIgnored).ToArray();
+		_fanSpeed = 0;
+		displayText.text = GetRandomDisplayText();
+		_currentSolves = Bomb.GetSolvedModuleNames();
+		_solvePercentageRequired = Random.Next(30, 50);
+		Debug.LogFormat("[The Fan #{0}] Solves required for module to deactivate: {1}", moduleId, 
+			Math.Ceiling(_solvePercentageRequired / 100f * Bomb.GetSolvableModuleNames().Count(m => !allIgnored.Contains(m))));
+		Debug.LogFormat("[The Fan #{0}] Initial display text: {1}", moduleId, displayText.text.ToUpper());
+		var x = GetXValue(Bomb.GetSolvedModuleNames().Count);
+		var xChar = (char)('@' + x);
+		Debug.LogFormat("[The Fan #{0}] Value of x: {1} = {2}", moduleId, x, xChar);
+		var y = 0;
+		foreach (var c in displayText.text)
+		{
+			if (char.IsDigit(c))
+				y += c - '0';
+			else if (char.IsLetter(c))
+				y += char.ToUpper(c) - '@';
+		}
+		Debug.LogFormat("[The Fan #{0}] Sum of display characters: {1}", moduleId, y);
+		StartCoroutine(Spin());
+	}
+
+	private bool PressPower()
 	{
 		powerButton.AddInteractionPunch();
 		Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, powerButton.transform);
@@ -74,7 +109,7 @@ public class TheFanScript : MonoBehaviour
 		return false;
 	}
 
-	bool PressDirection()
+	private bool PressDirection()
 	{
 		directionButton.AddInteractionPunch();
 		Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, directionButton.transform);
@@ -82,41 +117,23 @@ public class TheFanScript : MonoBehaviour
 			_direction *= -1;
 		return false;
 	}
-	
-	void Awake()
-	{
-		moduleId = _moduleIdCounter++;
-		_direction = 1;
 
-		powerButton.OnInteract += PressPower;
-		directionButton.OnInteract += PressDirection;
-	}
-	
-	void Start ()
-	{
-		remoteIgnored = BossModule.GetIgnoredModules("The Fan");
-		allIgnored = remoteIgnored.Union(localIgnored).ToArray();
-		_fanSpeed = 0;
-		displayText.text = GetRandomDisplayText();
-		_currentSolves = Bomb.GetSolvedModuleNames();
-		_solvePercentageRequired = Random.Next(30, 50);
-		Debug.LogFormat("[The Fan #{0}] Solves required for deactivation: {1}", moduleId, 
-			(_solvePercentageRequired / 100) * Bomb.GetSolvableModuleNames().Count(x => !allIgnored.Contains(x)));
-		StartCoroutine(Spin());
-	}
-	
 	void Update()
 	{
 		if (_powerButtonCount > 0 && Time.time > _powerButtonPressTime + PowerButtonResetDelay)
 			_powerButtonCount = 0;
-		
-		if (_isDeactivated) 
-			return;
 
-		// Decide if answer is correct when a new solve is detected.
-		var solvedModules = Bomb.GetSolvedModuleNames().Where(x => !allIgnored.Contains(x)).ToList();
-		if (_currentSolves.Count == solvedModules.Count) 
+		if (_isDeactivated)
 			return;
+		
+		var solvedModules = Bomb.GetSolvedModuleNames().Where(x => !allIgnored.Contains(x)).ToList();
+		if (_currentSolves.Count == solvedModules.Count)
+			return;
+		HandleOtherModuleSolved(solvedModules);
+	}
+
+	private void HandleOtherModuleSolved(List<string> solvedModules)
+	{
 		var lastSolved = GetLatestSolve(solvedModules, _currentSolves).ToUpperInvariant();
 		var solution = GetAnswer(lastSolved);
 		var answerString = "in an unknown state? How did this happen? Better complain to xMcacutt.";
@@ -132,7 +149,6 @@ public class TheFanScript : MonoBehaviour
 				answerString = "spinning clockwise";
 				break;
 		}
-		
 		var inputString = "in an unknown state? How did this happen? Better complain to xMcacutt.";
 		switch (_direction * (_isOn ? 1 : 0))
 		{
@@ -146,17 +162,16 @@ public class TheFanScript : MonoBehaviour
 				inputString = "spinning clockwise";
 				break;
 		}
-		
-		if ((Math.Abs(_fanSpeed - rotationSpeed) > 0.05f && _direction == solution) || (solution == 0 && _fanSpeed < 0.05f))
-		{
-			// Input was correct!
-			Debug.LogFormat("[The Fan #{0}] The Fan was in the correct state! ({1})", moduleId, inputString);
-			CheckDeactivated();
-			return;
-		}
 
-		Debug.LogFormat("[The Fan #{0}] Strike! The fan should have been {1} but it was {2}.", moduleId, answerString, inputString);
-		Module.HandleStrike();
+		if (string.Equals(inputString, answerString, StringComparison.CurrentCultureIgnoreCase))
+			Debug.LogFormat("[The Fan #{0}] The Fan was in the correct state! ({1})", moduleId, inputString);
+		else
+		{
+			Debug.LogFormat("[The Fan #{0}] Strike! The fan should have been {1} but it was {2}.", moduleId,
+				answerString, inputString);
+			Module.HandleStrike();
+		}
+		
 		CheckDeactivated();
 	}
 
@@ -168,6 +183,19 @@ public class TheFanScript : MonoBehaviour
 		    && numSolved < numSolvable)
 		{
 			displayText.text = GetRandomDisplayText();
+			Debug.LogFormat("[The Fan #{0}] New display text: {1}", moduleId, displayText.text.ToUpper());
+			var x = GetXValue(Bomb.GetSolvedModuleNames().Count);
+			var xChar = (char)('@' + x);
+			Debug.LogFormat("[The Fan #{0}] New value of x: {1} = {2}", moduleId, x, xChar);
+			var y = 0;
+			foreach (var c in displayText.text)
+			{
+				if (char.IsDigit(c))
+					y += c - '0';
+				else if (char.IsLetter(c))
+					y += char.ToUpper(c) - '@';
+			}
+			Debug.LogFormat("[The Fan #{0}] New sum of display characters: {1}", moduleId, y);
 			return;
 		}
 		_isDeactivated = true;
@@ -221,11 +249,10 @@ public class TheFanScript : MonoBehaviour
 		return result;
 	}
 
-	private int GetAnswer(string lastSolved)
+	private int GetXValue(int solveCount)
 	{
-		var solves = Bomb.GetSolvedModuleNames().Count - 1;
 		var serial = Bomb.GetSerialNumber();
-		var x = solves;
+		var x = solveCount;
 		foreach (var c in serial)
 		{
 			if (char.IsDigit(c))
@@ -233,10 +260,11 @@ public class TheFanScript : MonoBehaviour
 			else if (char.IsLetter(c))
 				x -= char.ToUpper(c) - '@';
 		}
-		x = ((x - 1) % 26 + 26) % 26 + 1;
-		var xChar = (char)('@' + x);
-		Debug.LogFormat("[The Fan #{0}] The value of x is {1} = {2} for module: {3}", moduleId, x, xChar, lastSolved);
-	    
+		return ((x - 1) % 26 + 26) % 26 + 1;
+	}
+
+	private int GetYValue(string lastSolved)
+	{
 		var y = 0;
 		foreach (var c in lastSolved)
 		{
@@ -253,7 +281,16 @@ public class TheFanScript : MonoBehaviour
 			else if (char.IsLetter(c))
 				y -= char.ToUpper(c) - '@';
 		}
-		y = ((y - 1) % 26 + 26) % 26 + 1;
+		return ((y - 1) % 26 + 26) % 26 + 1;
+	}
+
+	private int GetAnswer(string lastSolved)
+	{
+		var x = GetXValue(Bomb.GetSolvedModuleNames().Count - 1);
+		var xChar = (char)('@' + x);
+		Debug.LogFormat("[The Fan #{0}] The value of x is {1} = {2} for module: {3}", moduleId, x, xChar, lastSolved);
+	    
+		var y = GetYValue(lastSolved);
 		var yChar = (char)('@' + y);
 		Debug.LogFormat("[The Fan #{0}] The value of y is {1} = {2} for module: {3}", moduleId, y, yChar, lastSolved);
 
@@ -269,6 +306,7 @@ public class TheFanScript : MonoBehaviour
 			return 1;
 		}
 
+		var serial = Bomb.GetSerialNumber();
 		if (serial.ToUpper().Contains(xChar) && serial.ToUpper().Contains(yChar))
 		{
 			Debug.LogFormat("[The Fan #{0}] should be spinning counter-clockwise because x and y are in the serial number for module: {1}", moduleId, lastSolved);
@@ -310,20 +348,34 @@ public class TheFanScript : MonoBehaviour
 		command = command.ToLowerInvariant();
 		if (Regex.IsMatch(command, @"^\s*(?:pow)\s*$", RegexOptions.IgnoreCase))
 		{
+			yield return null;
 			PressPower();
 			yield return true;
 		}
 		else if (Regex.IsMatch(command, @"^\s*(?:dir)\s*$", RegexOptions.IgnoreCase))
 		{
+			yield return null;
 			PressDirection();
 			yield return true;
 		}
 		else if (Regex.IsMatch(command, @"^\s*(?:dPow)\s*$", RegexOptions.IgnoreCase))
 		{
+			yield return null;
 			PressPower();
 			PressPower();
 			yield return true;
 		}
 		yield return null;
+	}
+	
+	IEnumerator TwitchHandleForcedSolve()
+	{
+		Debug.LogFormat("[The Fan #{0}] Forced solve", moduleId);
+		_isSolved = true;
+		_isDeactivated = true;
+		_isOn = false;
+		powerLightMeshRenderer.material = _isOn ? powerLightOnMat : powerLightOffMat;
+		Module.HandlePass();
+		yield break;
 	}
 }

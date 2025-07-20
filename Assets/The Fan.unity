@@ -113,7 +113,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1001 &597287783
+--- !u!1001 &347925461
 Prefab:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -284,12 +284,12 @@ Prefab:
         type: 2}
       propertyPath: AudioClips.Array.data[0]
       value: 
-      objectReference: {fileID: 8300000, guid: ad11b6a91ce499445aedce0170057491, type: 3}
+      objectReference: {fileID: 8300000, guid: 98d0c5ed3fa7ca64393be3d1a8b083e5, type: 3}
     - target: {fileID: 114848120511536268, guid: 8814ea52310d2614a9feda02ec355ae4,
         type: 2}
       propertyPath: AudioClips.Array.data[1]
       value: 
-      objectReference: {fileID: 8300000, guid: 4ff74c6a3223a4f4fb35016c02d05b21, type: 3}
+      objectReference: {fileID: 8300000, guid: 329bb349078d8a843853a187144f8cc2, type: 3}
     - target: {fileID: 114848120511536268, guid: 8814ea52310d2614a9feda02ec355ae4,
         type: 2}
       propertyPath: AudioClips.Array.data[2]
